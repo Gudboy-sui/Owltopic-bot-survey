@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Growth — Quill</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#FFD700;--gold-faint:rgba(255,215,0,0.12);--black:#080808;--black3:#111111;--border:rgba(255,215,0,0.3);--text:#f5ecd0;--text-dim:#8a7a5a;--green:#00FF7F;--red:#FF3B3B;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{background:var(--black);color:var(--text);font-family:'DM Mono',monospace;overflow-x:hidden;}
+nav{position:sticky;top:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 5%;background:rgba(8,8,8,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,215,0,0.1);}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:3px;color:var(--gold);text-decoration:none;}
+.nav-links{display:flex;gap:2rem;list-style:none;}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;position:relative;padding-bottom:4px;transition:color 0.2s;}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width 0.3s;}
+.nav-links a:hover{color:var(--gold);}.nav-links a:hover::after{width:100%;}.nav-links a.active{color:var(--gold);}
+.nav-cta{background:rgba(255,215,0,0.1);border:1px solid var(--gold);color:var(--gold);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;padding:8px 18px;border-radius:50px;cursor:pointer;transition:background 0.2s;}
+.nav-cta:hover{background:rgba(255,215,0,0.2);}
+.nav-avatar-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,215,0,0.1);border:1px solid var(--border);color:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;overflow:hidden;}
+@media(max-width:880px){.nav-links{display:none;}}
+.growth-hero{padding:4rem 5% 2.5rem;text-align:center;max-width:720px;margin:0 auto;}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--gold-faint);border:1px solid var(--border);color:var(--gold);font-size:0.65rem;letter-spacing:3px;text-transform:uppercase;padding:6px 16px;border-radius:50px;margin-bottom:1.2rem;}
+.growth-hero h1{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:2px;color:#fff;margin-bottom:0.6rem;}
+.growth-hero h1 span{color:var(--gold);}
+.growth-hero p{color:var(--text-dim);font-size:0.85rem;line-height:1.7;}
+.guest-block{max-width:420px;margin:2rem auto 4rem;text-align:center;background:var(--black3);border:1px solid rgba(255,215,0,0.15);border-radius:18px;padding:2.5rem 2rem;}
+.guest-block p{color:var(--text-dim);font-size:0.8rem;margin-bottom:1.4rem;line-height:1.7;}
+.growth-content{max-width:480px;margin:0 auto;padding:0 5% 5rem;display:flex;flex-direction:column;gap:1.4rem;}
+.dash-section-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:rgba(255,215,0,0.4);text-transform:uppercase;position:relative;padding-bottom:8px;margin-bottom:4px;}
+.dash-card{background:var(--black3);border:1px solid rgba(255,215,0,0.15);border-radius:18px;padding:20px 18px;transition:border-color 0.3s;}
+.dash-card:hover{border-color:rgba(255,215,0,0.28);}
+.dash-card-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;}
+.gauge-ring-box{position:relative;width:140px;height:140px;}
+.gauge-current-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge-tier-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;}
+.gauge-tier-sub{font-size:0.5rem;color:var(--text-dim);letter-spacing:1px;margin-top:2px;}
+.gauge-next-row{display:flex;justify-content:space-between;width:100%;margin-top:16px;font-size:0.58rem;color:var(--text-dim);letter-spacing:0.5px;}
+.gauge-list{margin-top:16px;display:flex;flex-direction:column;gap:6px;width:100%;}
+.gauge-list-row{display:flex;justify-content:space-between;align-items:center;font-size:0.6rem;padding:6px 0;border-bottom:1px solid rgba(255,215,0,0.06);}
+.gauge-list-row.locked{opacity:0.35;}
+.gauge-list-status{font-size:0.52rem;letter-spacing:1px;}
+.gem-iron{color:#9a9aa3;}.gem-bronze{color:#c8845a;}.gem-silver{color:#c0c0cc;}.gem-gold{color:var(--gold);}.gem-platinum{color:#9ec8e8;}.gem-diamond{color:#5ce8e8;}
+.referral-code-box{display:flex;align-items:center;gap:8px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+.referral-code-text{flex:1;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--gold);}
+.referral-copy-btn{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);color:var(--gold);font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background 0.2s;}
+.referral-copy-btn:hover{background:rgba(255,215,0,0.18);}
+.referral-stats-row{display:flex;gap:8px;margin-bottom:14px;}
+.referral-stat{flex:1;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.12);border-radius:10px;padding:12px 10px;text-align:center;}
+.referral-stat-label{font-size:0.5rem;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.referral-stat-value{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--gold);letter-spacing:1px;}
+.referral-progress-label{display:flex;justify-content:space-between;font-size:0.58rem;color:var(--text-dim);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;}
+.referral-progress-bar-track{height:8px;border-radius:4px;background:rgba(255,215,0,0.08);overflow:hidden;}
+.referral-progress-bar-fill{height:100%;background:linear-gradient(90deg,rgba(255,215,0,0.5),var(--gold));border-radius:4px;transition:width 0.4s ease;}
+.referral-empty-note{font-family:'DM Mono',monospace;font-size:0.65rem;color:rgba(255,215,0,0.25);text-align:center;line-height:1.6;padding:16px 0;}
+.referral-pending-row{display:flex;justify-content:space-between;align-items:center;font-size:0.6rem;padding:8px 0;border-bottom:1px solid rgba(255,215,0,0.06);}
+.referral-pending-status{font-size:0.5rem;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:rgba(255,215,0,0.1);color:var(--gold);}
+footer{text-align:center;padding:2.5rem 5%;color:var(--text-dim);font-size:0.7rem;letter-spacing:1px;border-top:1px solid rgba(255,215,0,0.08);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">QUILL</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="bot.html">Bot</a></li>
+    <li><a href="learn.html">Learn</a></li>
+    <li><a href="vault.html">Vault</a></li>
+    <li><a href="growth.html" class="active">Growth</a></li>
+    <li><a href="index.html#contact">Links</a></li>
+  </ul>
+  <div id="nav-auth-area">
+    <button class="nav-cta" onclick="window.location.href='index.html'">Sign In</button>
+  </div>
+</nav>
+
+<div class="growth-hero">
+  <div class="badge">◈ Your Journey</div>
+  <h1>Your <span>Growth</span></h1>
+  <p>Track your milestone progress and grow your earnings by referring friends to Quill.</p>
+</div>
+
+<div id="guestBlock" class="guest-block" style="display:none;">
+  <p>Sign in to view your Growth — milestones and referrals.</p>
+  <button class="nav-cta" onclick="window.location.href='index.html'">Go to Sign In</button>
+</div>
+
+<div id="growthContent" class="growth-content" style="display:none;">
+
+  <div class="dash-section-label" data-label="MILESTONES"></div>
+  <div class="dash-card">
+    <div class="dash-card-title">YOUR PROGRESS</div>
+    <div class="gauge-wrap">
+      <div class="gauge-ring-box">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,215,0,0.1)" stroke-width="8"/>
+          <circle id="gaugeRing" cx="70" cy="70" r="60" fill="none" stroke="#c8845a" stroke-width="8"
+            stroke-dasharray="377" stroke-dashoffset="377" stroke-linecap="round" transform="rotate(-90 70 70)"
+            style="transition:stroke-dashoffset 0.6s ease,stroke 0.3s ease;"/>
+        </svg>
+        <div class="gauge-current-label">
+          <div class="gauge-tier-name" id="gaugeTierName">— —</div>
+          <div class="gauge-tier-sub" id="gaugeTierSub">loading</div>
+        </div>
+      </div>
+      <div class="gauge-next-row">
+        <span id="gaugeNextLabel">—</span>
+        <span id="gaugeNextAmount">—</span>
+      </div>
+      <div class="gauge-list" id="milestoneList"></div>
+    </div>
+  </div>
+
+  <div class="dash-section-label" data-label="REFERRAL"></div>
+  <div class="dash-card">
+    <div class="dash-card-title">YOUR REFERRAL CODE</div>
+    <div class="referral-code-box">
+      <div class="referral-code-text" id="referralCodeText">— — —</div>
+      <button class="referral-copy-btn" onclick="copyReferralCode()" id="referralCopyBtn">COPY</button>
+    </div>
+
+    <!-- Free trades perk — only visible to referred users with trades remaining -->
+    <div id="freeTradesBlock" style="display:none;background:rgba(0,255,127,0.06);border:1px solid rgba(0,255,127,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:rgba(0,255,127,0.7);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">FREE TRADES REMAINING</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#00FF7F;letter-spacing:2px;" id="freeTradesCount">0</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--text-dim);margin-top:4px;line-height:1.6;">No fee taken on your next winning trade(s) — referral perk active.</div>
+    </div>
+
+    <div class="referral-stats-row">
+      <div class="referral-stat">
+        <div class="referral-stat-label">Total Earned</div>
+        <div class="referral-stat-value" id="referralTotalEarned">$0.00</div>
+      </div>
+      <div class="referral-stat">
+        <div class="referral-stat-label">Available to Withdraw</div>
+        <div class="referral-stat-value" id="referralWithdrawable">$0.00</div>
+      </div>
+    </div>
+    <div id="referralPendingList"></div>
+    <div class="referral-progress-section" id="referralProgressSection" style="display:none;margin-top:6px;">
+      <div class="referral-progress-label">
+        <span>Referral Progress</span>
+        <span id="referralProgressPct">0%</span>
+      </div>
+      <div class="referral-progress-bar-track">
+        <div class="referral-progress-bar-fill" id="referralProgressFill" style="width:0%;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>QUILL · Growth · Your journey, your earnings</footer>
+
+<script>
+const SUPABASE_URL='https://pqiavaupmkgrkhnebfxs.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxaWF2YXVwbWtncmtobmViZnhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjMxNjMsImV4cCI6MjA4ODYzOTE2M30.qyZxl835adIPVTr78b5dQDltTLAYjW0XO0m-wQR2zWo';
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const TIER_CONFIG={
+  iron:{label:'IRON',gem:'⬛',color:'#9a9aa3'},
+  bronze:{label:'BRONZE',gem:'🟤',color:'#c8845a'},
+  silver:{label:'SILVER',gem:'⚪',color:'#c0c0cc'},
+  gold:{label:'GOLD',gem:'🟡',color:'#FFD700'},
+  platinum:{label:'PLATINUM',gem:'🔵',color:'#9ec8e8'},
+  diamond:{label:'DIAMOND',gem:'💎',color:'#5ce8e8'}
+};
+
+function updateNavAuthMinimal(user){
+  const area=document.getElementById('nav-auth-area');
+  const guestBlock=document.getElementById('guestBlock');
+  const growthContent=document.getElementById('growthContent');
+  if(user){
+    window._currentUserId=user.id;
+    const meta=user.user_metadata||{};
+    const avatarVal=meta.avatar_url||localStorage.getItem(`quill_avatar_${user.id}`)||'◈';
+    const isImg=avatarVal.startsWith('http')||avatarVal.startsWith('data:image');
+    const navContent=isImg?`<img src="${avatarVal}" alt="Avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`:avatarVal;
+    area.innerHTML=`<button class="nav-avatar-btn" onclick="window.location.href='index.html'" title="View Profile">${navContent}</button>`;
+    guestBlock.style.display='none';
+    growthContent.style.display='flex';
+    loadMilestones(user.id);
+    loadReferral(user.id);
+  }else{
+    window._currentUserId=null;
+    area.innerHTML=`<button class="nav-cta" onclick="window.location.href='index.html'">Sign In</button>`;
+    guestBlock.style.display='block';
+    growthContent.style.display='none';
+  }
+}
+
+sb.auth.getSession().then(({data:{session}})=>{updateNavAuthMinimal(session?session.user:null);});
+sb.auth.onAuthStateChange((_event,session)=>{updateNavAuthMinimal(session?session.user:null);});
+
+async function loadMilestones(uid){
+  try{
+    const [{data:profile},{data:milestones}]=await Promise.all([
+      sb.from('profiles').select('cumulative_fees_paid').eq('id',uid).maybeSingle(),
+      sb.from('milestones').select('id,level_name,fee_threshold,reward_value').order('fee_threshold',{ascending:true})
+    ]);
+    if(!profile||!milestones)return;
+    const cumulative=parseFloat(profile.cumulative_fees_paid||0);
+    let currentTierKey='iron';
+    let currentThreshold=0;
+    let nextMilestone=null;
+    for(const m of milestones){
+      const t=parseFloat(m.fee_threshold);
+      if(cumulative>=t){currentTierKey=m.level_name.toLowerCase();currentThreshold=t;}
+      else if(!nextMilestone){nextMilestone=m;}
+    }
+    const cfg=TIER_CONFIG[currentTierKey]||TIER_CONFIG.iron;
+    document.getElementById('gaugeTierName').textContent=cfg.gem+' '+cfg.label;
+    document.getElementById('gaugeRing').style.stroke=cfg.color;
+    if(nextMilestone){
+      const nextThreshold=parseFloat(nextMilestone.fee_threshold);
+      const progress=Math.max(0,Math.min(1,(cumulative-currentThreshold)/(nextThreshold-currentThreshold)));
+      document.getElementById('gaugeRing').style.strokeDashoffset=377*(1-progress);
+      document.getElementById('gaugeTierSub').textContent='$'+cumulative.toFixed(2)+' / $'+nextThreshold.toFixed(2);
+      document.getElementById('gaugeNextLabel').textContent='Next: '+nextMilestone.level_name;
+      document.getElementById('gaugeNextAmount').textContent='$'+(nextThreshold-cumulative).toFixed(2)+' to go';
+    }else{
+      document.getElementById('gaugeRing').style.strokeDashoffset=0;
+      document.getElementById('gaugeTierSub').textContent='$'+cumulative.toFixed(2)+' — Max Tier';
+      document.getElementById('gaugeNextLabel').textContent='All milestones unlocked';
+      document.getElementById('gaugeNextAmount').textContent='';
+    }
+    const listEl=document.getElementById('milestoneList');
+    listEl.innerHTML=milestones.map(m=>{
+      const threshold=parseFloat(m.fee_threshold);
+      const key=m.level_name.toLowerCase();
+      const c=TIER_CONFIG[key]||TIER_CONFIG.iron;
+      const unlocked=cumulative>=threshold;
+      const isCurrent=key===currentTierKey;
+      let statusHtml;
+      if(isCurrent)statusHtml=`<span class="gauge-list-status" style="color:var(--green);">● current</span>`;
+      else if(unlocked)statusHtml=`<span class="gauge-list-status" style="color:var(--green);">✓ unlocked</span>`;
+      else statusHtml=`<span class="gauge-list-status" style="color:var(--text-dim);">locked</span>`;
+      return`<div class="gauge-list-row ${unlocked?'':'locked'}"><span style="color:${c.color};">${c.gem} ${m.level_name} — $${parseFloat(threshold).toFixed(0)}</span>${statusHtml}</div>`;
+    }).join('');
+  }catch(e){}
+}
+
+async function loadReferral(uid){
+  try{
+    const {data:profile}=await sb.from('profiles').select('quill_uid,referral_withdrawable_balance,free_trade_count_remaining').eq('id',uid).maybeSingle();
+    if(!profile)return;
+    document.getElementById('referralCodeText').textContent=profile.quill_uid||'—';
+    document.getElementById('referralWithdrawable').textContent='$'+parseFloat(profile.referral_withdrawable_balance||0).toFixed(2);
+
+    // Free trades perk — show only if remaining > 0
+    const freeTrades = parseInt(profile.free_trade_count_remaining || 0);
+    const freeBlock = document.getElementById('freeTradesBlock');
+    if(freeTrades > 0){
+      document.getElementById('freeTradesCount').textContent = freeTrades;
+      freeBlock.style.display = 'block';
+    } else {
+      freeBlock.style.display = 'none';
+    }
+    const {data:payouts}=await sb.from('referral_payouts').select('id,amount,status,payout_due_at').eq('referrer_id',uid).order('qualified_at',{ascending:false});
+    const totalEarned=(payouts||[]).reduce((sum,p)=>sum+parseFloat(p.amount),0);
+    document.getElementById('referralTotalEarned').textContent='$'+totalEarned.toFixed(2);
+    const pendingList=document.getElementById('referralPendingList');
+    const pending=(payouts||[]).filter(p=>p.status==='pending');
+    if(pending.length){
+      pendingList.innerHTML=pending.map(p=>{
+        const due=new Date(p.payout_due_at);
+        return`<div class="referral-pending-row"><span style="color:var(--text-dim);">$${parseFloat(p.amount).toFixed(2)} reward — due ${due.toLocaleDateString()}</span><span class="referral-pending-status">PENDING</span></div>`;
+      }).join('');
+    }else if(!payouts||payouts.length===0){
+      pendingList.innerHTML=`<div class="referral-empty-note">No referrals yet. Share your code above to start earning.</div>`;
+    }else{
+      pendingList.innerHTML='';
+    }
+    // Progress bar — fees portion only (trading-days check not measurable yet), capped at 99%
+    const {data:referredUsers}=await sb.from('profiles').select('cumulative_fees_paid').eq('referred_by',uid).order('cumulative_fees_paid',{ascending:false}).limit(1);
+    const progressSection=document.getElementById('referralProgressSection');
+    if(referredUsers&&referredUsers.length>0){
+      const fees=parseFloat(referredUsers[0].cumulative_fees_paid||0);
+      const pct=Math.min(99,Math.round((fees/2.00)*100));
+      document.getElementById('referralProgressPct').textContent=pct+'%';
+      document.getElementById('referralProgressFill').style.width=pct+'%';
+      progressSection.style.display='block';
+    }else{
+      progressSection.style.display='none';
+    }
+  }catch(e){}
+}
+
+function copyReferralCode(){
+  const code=document.getElementById('referralCodeText').textContent;
+  if(!code||code==='—')return;
+  navigator.clipboard.writeText(code).then(()=>{
+    const btn=document.getElementById('referralCopyBtn');
+    const orig=btn.textContent;
+    btn.textContent='COPIED';
+    setTimeout(()=>{btn.textContent=orig;},1500);
+  });
+}
+</script>
+</body>
+</html>

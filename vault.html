@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — Quill</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFD700;
+    --gold-dim: #D4AF37;
+    --gold-faint: rgba(255,215,0,0.12);
+    --gold-glow: rgba(255,215,0,0.85);
+    --black: #080808;
+    --black2: #0c0c0c;
+    --black3: #111111;
+    --card: #0f0f0f;
+    --border: rgba(255,215,0,0.3);
+    --text: #f5ecd0;
+    --text-dim: #8a7a5a;
+    --green: #00FF7F;
+    --green-glow: rgba(0,255,127,0.7);
+    --red: #FF3B3B;
+    --red-glow: rgba(255,59,59,0.7);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--black); color:var(--text); font-family:'DM Mono',monospace;
+    overflow-x:hidden;
+  }
+
+  nav {
+    position:sticky; top:0; z-index:500;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.2rem 5%; background:rgba(8,8,8,0.85); backdrop-filter:blur(16px);
+    border-bottom:1px solid rgba(255,215,0,0.1);
+  }
+  .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:3px; color:var(--gold); text-decoration:none; }
+  .nav-links { display:flex; gap:2rem; list-style:none; }
+  .nav-links a {
+    color:var(--text-dim); text-decoration:none; font-size:0.75rem; letter-spacing:2px;
+    text-transform:uppercase; position:relative; padding-bottom:4px; transition:color 0.2s;
+  }
+  .nav-links a::after {
+    content:''; position:absolute; bottom:0; left:0; width:0; height:1px;
+    background:var(--gold); transition:width 0.3s;
+  }
+  .nav-links a:hover { color:var(--gold); }
+  .nav-links a:hover::after { width:100%; }
+  .nav-links a.active { color:var(--gold); }
+  .nav-cta {
+    background:rgba(255,215,0,0.1); border:1px solid var(--gold); color:var(--gold);
+    font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:2px; text-transform:uppercase;
+    padding:8px 18px; border-radius:50px; cursor:pointer; transition:background 0.2s;
+  }
+  .nav-cta:hover { background:rgba(255,215,0,0.2); }
+  .nav-avatar-btn {
+    width:36px; height:36px; border-radius:50%; background:rgba(255,215,0,0.1);
+    border:1px solid var(--border); color:var(--gold); display:flex; align-items:center;
+    justify-content:center; cursor:pointer; font-size:1rem; overflow:hidden;
+  }
+  @media (max-width:880px) { .nav-links { display:none; } }
+
+  .vault-hero { padding:4rem 5% 2.5rem; text-align:center; max-width:720px; margin:0 auto; }
+  .badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--gold-faint); border:1px solid var(--border); color:var(--gold);
+    font-size:0.65rem; letter-spacing:3px; text-transform:uppercase;
+    padding:6px 16px; border-radius:50px; margin-bottom:1.2rem;
+  }
+  .vault-hero h1 { font-family:'Bebas Neue',sans-serif; font-size:2.6rem; letter-spacing:2px; color:#fff; margin-bottom:0.6rem; }
+  .vault-hero h1 span { color:var(--gold); }
+  .vault-hero p { color:var(--text-dim); font-size:0.85rem; line-height:1.7; }
+
+  .guest-block {
+    max-width:420px; margin:2rem auto 4rem; text-align:center;
+    background:var(--black3); border:1px solid rgba(255,215,0,0.15); border-radius:18px; padding:2.5rem 2rem;
+  }
+  .guest-block p { color:var(--text-dim); font-size:0.8rem; margin-bottom:1.4rem; line-height:1.7; }
+
+  .vault-content { max-width:480px; margin:0 auto; padding:0 5% 5rem; display:flex; flex-direction:column; gap:1.4rem; }
+
+  .dash-section-label {
+    font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:4px;
+    color:rgba(255,215,0,0.4); text-transform:uppercase;
+    position:relative; padding-bottom:8px; margin-bottom:4px;
+  }
+  .dash-card {
+    background:var(--black3); border:1px solid rgba(255,215,0,0.15);
+    border-radius:18px; padding:18px; transition:border-color 0.3s;
+  }
+  .dash-card:hover { border-color:rgba(255,215,0,0.28); }
+  .dash-card-title { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--text-dim); letter-spacing:3px; text-transform:uppercase; }
+
+  .reserve-balance-display { text-align:center; padding:16px 0 12px; }
+  .reserve-balance-label { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--text-dim); letter-spacing:3px; text-transform:uppercase; margin-bottom:8px; }
+  .reserve-balance-amount { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:3px; color:var(--gold); }
+  .reserve-balance-unit { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--text-dim); margin-left:6px; letter-spacing:2px; }
+  .reserve-withdraw-hint { font-family:'DM Mono',monospace; font-size:0.56rem; color:var(--green); opacity:0.75; letter-spacing:1.5px; text-transform:uppercase; margin-top:4px; }
+  .reserve-tier-row { display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:14px; }
+  .reserve-tier-badge {
+    background:var(--gold-faint); border:1px solid var(--border);
+    color:var(--gold); font-family:'DM Mono',monospace; font-size:0.65rem;
+    padding:5px 14px; border-radius:50px; letter-spacing:2px; text-transform:uppercase;
+  }
+  .secondary-balances-row { display:flex; gap:8px; margin-bottom:14px; }
+  .mini-balance {
+    flex:1; background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.12);
+    border-radius:10px; padding:10px 8px; text-align:center;
+  }
+  .mini-balance-label { font-family:'DM Mono',monospace; font-size:0.5rem; color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; }
+  .mini-balance-amt { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; color:var(--text); letter-spacing:1px; }
+  .mini-balance-tag { font-family:'DM Mono',monospace; font-size:0.46rem; color:rgba(255,215,0,0.35); letter-spacing:1px; margin-top:4px; text-transform:uppercase; }
+  .deduction-badge {
+    position:absolute; top:-6px; right:-6px;
+    background:rgba(255,59,59,0.15); border:1px solid rgba(255,59,59,0.5);
+    color:var(--red); font-family:'DM Mono',monospace; font-weight:500;
+    font-size:0.6rem; padding:2px 6px; border-radius:8px; letter-spacing:0.5px;
+    box-shadow:0 0 8px rgba(255,59,59,0.25); white-space:nowrap; z-index:2;
+  }
+  .deduction-badge.mini { font-size:0.48rem; padding:1px 5px; top:-5px; right:-5px; }
+  .reserve-divider { height:1px; background:rgba(255,215,0,0.1); margin:14px 0; }
+  .reserve-btn-row { display:flex; gap:8px; margin-bottom:14px; }
+  .reserve-btn {
+    flex:1; background:transparent; border:1px solid rgba(255,215,0,0.18);
+    color:rgba(255,215,0,0.4); font-family:'DM Mono',monospace; font-size:0.62rem;
+    letter-spacing:1.5px; text-transform:uppercase; padding:10px; border-radius:10px;
+    cursor:not-allowed; opacity:0.5;
+  }
+  .reserve-btn-icon { margin-right:4px; }
+  .reserve-history-label {
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--text-dim);
+    letter-spacing:3px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .reserve-empty-note { font-family:'DM Mono',monospace; font-size:0.65rem; color:rgba(255,215,0,0.25); text-align:center; line-height:1.6; padding:16px 0; }
+
+  .reserve-info-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
+    z-index:1000; display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s; padding:20px;
+  }
+  .reserve-info-overlay.active { opacity:1; pointer-events:all; }
+  .reserve-info-box {
+    background:var(--black3); border:1px solid var(--border); border-radius:20px;
+    padding:2rem 1.6rem; max-width:380px; width:100%; position:relative;
+    transform:translateY(20px); opacity:0; transition:transform 0.3s, opacity 0.3s;
+  }
+  .reserve-info-overlay.active .reserve-info-box { transform:translateY(0); opacity:1; }
+  .reserve-info-close { position:absolute; top:14px; right:16px; background:transparent; border:none; color:var(--text-dim); font-size:1rem; cursor:pointer; transition:color 0.2s; }
+  .reserve-info-close:hover { color:var(--gold); }
+  .reserve-info-icon {
+    width:40px; height:40px; border-radius:50%; background:var(--gold-faint);
+    border:1px solid var(--border); color:var(--gold); display:flex; align-items:center;
+    justify-content:center; font-size:1.1rem; margin:0 auto 1rem;
+  }
+  .reserve-info-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:3px; color:#fff; text-align:center; margin-bottom:1.5rem; }
+  .reserve-info-body { display:flex; flex-direction:column; gap:12px; }
+  .reserve-info-row { display:flex; align-items:flex-start; gap:12px; }
+  .reserve-info-dot { width:8px; height:8px; border-radius:50%; background:var(--gold); flex-shrink:0; margin-top:5px; box-shadow:0 0 6px rgba(255,215,0,0.5); }
+  .reserve-info-text { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--text-dim); line-height:1.7; }
+  .reserve-info-text strong { color:var(--gold); }
+  .reserve-info-footer { text-align:center; margin-top:1.5rem; font-family:'DM Mono',monospace; font-size:0.6rem; color:rgba(255,215,0,0.3); letter-spacing:2px; }
+
+  footer { text-align:center; padding:2.5rem 5%; color:var(--text-dim); font-size:0.7rem; letter-spacing:1px; border-top:1px solid rgba(255,215,0,0.08); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">QUILL</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="bot.html">Bot</a></li>
+    <li><a href="learn.html">Learn</a></li>
+    <li><a href="vault.html" class="active">Vault</a></li>
+    <li><a href="growth.html">Growth</a></li>
+    <li><a href="index.html#contact">Links</a></li>
+  </ul>
+  <div id="nav-auth-area">
+    <button class="nav-cta" onclick="window.location.href='index.html'">Sign In</button>
+  </div>
+</nav>
+
+<div class="vault-hero">
+  <div class="badge">◈ Your Reserve</div>
+  <h1>The <span>Vault</span></h1>
+  <p>Your Money, Gift Card, and Reward Credit balances — plus redeeming codes and withdrawing your earnings.</p>
+</div>
+
+<div id="guestBlock" class="guest-block" style="display:none;">
+  <p>Sign in to view and manage your Vault.</p>
+  <button class="nav-cta" onclick="window.location.href='index.html'">Go to Sign In</button>
+</div>
+
+<div id="vaultContent" class="vault-content" style="display:none;">
+
+  <div class="dash-section-label" data-label="RESERVE"></div>
+  <div class="dash-card">
+    <div class="reserve-balance-display">
+      <div class="reserve-balance-label">MONEY BALANCE</div>
+      <div style="position:relative;display:inline-block;">
+        <span class="deduction-badge" id="deductBadge_money" style="display:none;">-0%</span>
+        <span class="reserve-balance-amount" id="reserveMoneyAmt">$0.00</span>
+        <span class="reserve-balance-unit">USDC</span>
+      </div>
+      <div class="reserve-withdraw-hint">✓ withdrawable</div>
+    </div>
+
+    <div class="reserve-tier-row">
+      <div class="reserve-tier-badge" id="reserveTierBadge">— LOADING</div>
+      <button onclick="openReserveInfo()" style="
+        width:22px; height:22px; border-radius:50%;
+        background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.3);
+        color:var(--gold); font-family:'DM Mono',monospace; font-weight:500;
+        font-size:11px; cursor:pointer; display:flex; align-items:center;
+        justify-content:center; flex-shrink:0;
+        box-shadow:0 0 10px rgba(255,215,0,0.12);
+        transition:box-shadow 0.2s, background 0.2s;"
+      onmouseover="this.style.background='rgba(255,215,0,0.15)';this.style.boxShadow='0 0 16px rgba(255,215,0,0.3)'"
+      onmouseout="this.style.background='rgba(255,215,0,0.08)';this.style.boxShadow='0 0 10px rgba(255,215,0,0.12)'">?</button>
+    </div>
+
+    <div class="secondary-balances-row">
+      <div class="mini-balance">
+        <div style="position:relative;display:inline-block;">
+          <span class="deduction-badge mini" id="deductBadge_giftcard" style="display:none;">-0%</span>
+          <div class="mini-balance-label">Gift Card</div>
+          <div class="mini-balance-amt" id="reserveGiftCardAmt">$0.00</div>
+        </div>
+        <div class="mini-balance-tag">spend-only</div>
+      </div>
+      <div class="mini-balance">
+        <div style="position:relative;display:inline-block;">
+          <span class="deduction-badge mini" id="deductBadge_rewardcredit" style="display:none;">-0%</span>
+          <div class="mini-balance-label">Reward Credit</div>
+          <div class="mini-balance-amt" id="reserveRewardCreditAmt">$0.00</div>
+        </div>
+        <div class="mini-balance-tag">spend-only</div>
+      </div>
+    </div>
+
+    <div class="reserve-divider"></div>
+
+    <div class="reserve-btn-row">
+      <button class="reserve-btn" disabled><span class="reserve-btn-icon">↑</span> TOP UP</button>
+      <button class="reserve-btn" disabled><span class="reserve-btn-icon">↓</span> WITHDRAW</button>
+    </div>
+
+    <div class="reserve-history-label">
+      <span>FEE HISTORY</span>
+      <span style="font-size:7px;color:rgba(255,215,0,0.25);font-family:'DM Mono',monospace;letter-spacing:0.05em;">ALL TIME</span>
+    </div>
+    <div class="reserve-history-list">
+      <div class="reserve-empty-note">No fee deductions yet.<br>History will appear here after your first profitable trade.</div>
+    </div>
+  </div>
+
+  <div class="dash-section-label" data-label="REWARDS"></div>
+  <div class="dash-card">
+    <div class="dash-card-title" style="margin-bottom:12px;">REDEEM GIFT CARD</div>
+    <div style="display:flex; gap:8px;">
+      <input type="text" id="giftCardCodeInput" placeholder="ENTER CODE" maxlength="40"
+        style="flex:1; background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.2);
+               border-radius:10px; padding:11px 14px; color:var(--text);
+               font-family:'DM Mono',monospace; font-size:0.75rem; letter-spacing:2px;
+               text-transform:uppercase; outline:none;"
+        onkeydown="if(event.key==='Enter'){redeemGiftCard();}">
+      <button onclick="redeemGiftCard()" id="giftCardRedeemBtn"
+        style="background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.4);
+               color:var(--gold); font-family:'DM Mono',monospace; font-size:0.65rem;
+               letter-spacing:2px; text-transform:uppercase; padding:11px 18px;
+               border-radius:10px; cursor:pointer; white-space:nowrap;
+               transition:background 0.2s;"
+        onmouseover="this.style.background='rgba(255,215,0,0.18)'"
+        onmouseout="this.style.background='rgba(255,215,0,0.1)'">REDEEM</button>
+    </div>
+    <div id="giftCardResultMsg" style="margin-top:10px; font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.5px; display:none;"></div>
+  </div>
+
+  <div class="dash-section-label" data-label="WITHDRAW"></div>
+  <div class="dash-card">
+    <div class="dash-card-title" style="margin-bottom:4px;">WITHDRAW FROM MONEY BALANCE</div>
+    <div style="font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--text-dim); letter-spacing:1px; margin-bottom:14px;">
+      Minimum withdrawal: $1.00 · Processed within 24-48 hours
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+      <input type="text" id="withdrawWalletInput" placeholder="WALLET ADDRESS"
+        style="background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.2);
+               border-radius:10px; padding:11px 14px; color:var(--text);
+               font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:1px;
+               outline:none;">
+      <div style="display:flex; gap:8px;">
+        <input type="number" id="withdrawAmountInput" placeholder="AMOUNT (USDC)" min="1" step="0.01"
+          style="flex:1; background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.2);
+                 border-radius:10px; padding:11px 14px; color:var(--text);
+                 font-family:'DM Mono',monospace; font-size:0.75rem; letter-spacing:1px;
+                 outline:none;">
+        <button onclick="submitWithdrawal()" id="withdrawSubmitBtn"
+          style="background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.4);
+                 color:var(--gold); font-family:'DM Mono',monospace; font-size:0.65rem;
+                 letter-spacing:2px; text-transform:uppercase; padding:11px 18px;
+                 border-radius:10px; cursor:pointer; white-space:nowrap;
+                 transition:background 0.2s;"
+          onmouseover="this.style.background='rgba(255,215,0,0.18)'"
+          onmouseout="this.style.background='rgba(255,215,0,0.1)'">WITHDRAW</button>
+      </div>
+    </div>
+    <div id="withdrawResultMsg" style="font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.5px; display:none;"></div>
+  </div>
+
+</div>
+
+<div class="reserve-info-overlay" id="reserveInfoOverlay">
+  <div class="reserve-info-box">
+    <button class="reserve-info-close" onclick="closeReserveInfo()">✕</button>
+    <div class="reserve-info-icon">?</div>
+    <div class="reserve-info-title">WHAT IS THE FEE RESERVE?</div>
+    <div class="reserve-info-body">
+      <div class="reserve-info-row">
+        <div class="reserve-info-dot"></div>
+        <div class="reserve-info-text">The fee reserve is a small <strong>USDC buffer</strong> you deposit upfront. Quill Bot deducts performance fees from it automatically after winning trades — no manual payments needed.</div>
+      </div>
+      <div class="reserve-info-row">
+        <div class="reserve-info-dot"></div>
+        <div class="reserve-info-text"><strong>Only deducted when you profit.</strong> Losing trades cost zero in fees — you only pay when the bot makes you money.</div>
+      </div>
+      <div class="reserve-info-row">
+        <div class="reserve-info-dot"></div>
+        <div class="reserve-info-text"><strong>One flat fee for everyone: 10%.</strong> No tiers, no discounts based on volume or status.</div>
+      </div>
+      <div class="reserve-info-row">
+        <div class="reserve-info-dot"></div>
+        <div class="reserve-info-text">Your reserve has <strong>three balances</strong>, and fees are drawn from them in this order: <strong>Reward Credit</strong> first, then <strong>Gift Card</strong>, then <strong>Money</strong> last. This way your free and bonus funds always get used before your own deposits.</div>
+      </div>
+      <div class="reserve-info-row">
+        <div class="reserve-info-dot"></div>
+        <div class="reserve-info-text">Only your <strong>Money Balance</strong> and <strong>Referral Earnings</strong> can be withdrawn. Gift Card and Reward Credit balances are spend-only — they go toward fees, never to your wallet.</div>
+      </div>
+    </div>
+    <div class="reserve-info-footer">COMING SOON · QUILL v1.0</div>
+  </div>
+</div>
+
+<footer>QUILL · Vault · Your balances, your control</footer>
+
+<script>
+  const SUPABASE_URL = 'https://pqiavaupmkgrkhnebfxs.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxaWF2YXVwbWtncmtobmViZnhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjMxNjMsImV4cCI6MjA4ODYzOTE2M30.qyZxl835adIPVTr78b5dQDltTLAYjW0XO0m-wQR2zWo';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function updateNavAuthMinimal(user) {
+    const area = document.getElementById('nav-auth-area');
+    const guestBlock = document.getElementById('guestBlock');
+    const vaultContent = document.getElementById('vaultContent');
+    if (user) {
+      window._currentUserId = user.id;
+      const meta = user.user_metadata || {};
+      const avatarVal = meta.avatar_url || localStorage.getItem(`quill_avatar_${user.id}`) || '◈';
+      const isAvatarImg = avatarVal.startsWith('http') || avatarVal.startsWith('data:image');
+      const navAvatarContent = isAvatarImg
+        ? `<img src="${avatarVal}" alt="Avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`
+        : avatarVal;
+      area.innerHTML = `<button class="nav-avatar-btn" onclick="window.location.href='index.html'" title="View Profile">${navAvatarContent}</button>`;
+      guestBlock.style.display = 'none';
+      vaultContent.style.display = 'flex';
+      loadUserTier(user.id);
+      loadReserveBalances(user.id);
+    } else {
+      window._currentUserId = null;
+      area.innerHTML = `<button class="nav-cta" onclick="window.location.href='index.html'">Sign In</button>`;
+      guestBlock.style.display = 'block';
+      vaultContent.style.display = 'none';
+    }
+  }
+
+  sb.auth.getSession().then(({ data: { session } }) => {
+    updateNavAuthMinimal(session ? session.user : null);
+  });
+  sb.auth.onAuthStateChange((_event, session) => {
+    updateNavAuthMinimal(session ? session.user : null);
+  });
+
+  const TIER_CONFIG = {
+    iron:     { label:'IRON',     gem:'⬛' },
+    bronze:   { label:'BRONZE',   gem:'🟤' },
+    silver:   { label:'SILVER',   gem:'⚪' },
+    gold:     { label:'GOLD',     gem:'🟡' },
+    platinum: { label:'PLATINUM', gem:'🔵' },
+    diamond:  { label:'DIAMOND',  gem:'💎' }
+  };
+
+  let _milestonesCache = null;
+  async function getMilestones() {
+    if (_milestonesCache) return _milestonesCache;
+    const { data, error } = await sb
+      .from('milestones')
+      .select('id, level_name, fee_threshold, reward_value')
+      .order('fee_threshold', { ascending: true });
+    if (error || !data) return [];
+    _milestonesCache = data;
+    return data;
+  }
+
+  function applyTierUI(tier) {
+    const t = tier ? tier.toLowerCase() : 'iron';
+    const cfg = TIER_CONFIG[t] || TIER_CONFIG.iron;
+    const badge = document.getElementById('reserveTierBadge');
+    if (badge) badge.textContent = cfg.gem + ' ' + cfg.label;
+  }
+
+  async function loadUserTier(uid) {
+    if (!uid || uid === 'guest') { applyTierUI('iron'); return; }
+    try {
+      const [{ data: profile }, milestones] = await Promise.all([
+        sb.from('profiles').select('cumulative_fees_paid').eq('id', uid).maybeSingle(),
+        getMilestones()
+      ]);
+      const cumulative = parseFloat(profile?.cumulative_fees_paid || 0);
+      let currentTier = 'iron';
+      for (const m of milestones) {
+        if (cumulative >= parseFloat(m.fee_threshold)) currentTier = m.level_name.toLowerCase();
+      }
+      applyTierUI(currentTier);
+    } catch (e) {
+      applyTierUI('iron');
+    }
+  }
+
+  function setDeductionBadge(key, pct) {
+    const el = document.getElementById('deductBadge_' + key);
+    if (!el) return;
+    if (pct && pct > 0) {
+      el.textContent = '-' + (pct < 1 ? pct.toFixed(1) : Math.round(pct)) + '%';
+      el.style.display = 'inline-block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  async function loadReserveBalances(uid) {
+    if (!uid || uid === 'guest') return;
+    try {
+      const { data: profile, error: profileErr } = await sb
+        .from('profiles')
+        .select('money_balance, gift_card_balance, bonus_gift_reserve')
+        .eq('id', uid)
+        .maybeSingle();
+      if (profileErr || !profile) return;
+
+      const moneyEl  = document.getElementById('reserveMoneyAmt');
+      const giftEl   = document.getElementById('reserveGiftCardAmt');
+      const rewardEl = document.getElementById('reserveRewardCreditAmt');
+      if (moneyEl)  moneyEl.textContent  = '$' + parseFloat(profile.money_balance || 0).toFixed(2);
+      if (giftEl)   giftEl.textContent   = '$' + parseFloat(profile.gift_card_balance || 0).toFixed(2);
+      if (rewardEl) rewardEl.textContent = '$' + parseFloat(profile.bonus_gift_reserve || 0).toFixed(2);
+
+      const { data: deductions, error: dedErr } = await sb
+        .from('reserve_deduction_log')
+        .select('from_reward_credit, from_gift_card, from_money, reward_credit_before, gift_card_before, money_before')
+        .eq('user_id', uid)
+        .eq('seen', false);
+
+      if (!dedErr && deductions && deductions.length) {
+        let rewardDeducted = 0, giftDeducted = 0, moneyDeducted = 0;
+        let rewardBefore = null, giftBefore = null, moneyBefore = null;
+        deductions.forEach(d => {
+          if (d.from_reward_credit > 0) { rewardDeducted += parseFloat(d.from_reward_credit); if (rewardBefore === null) rewardBefore = parseFloat(d.reward_credit_before); }
+          if (d.from_gift_card > 0)     { giftDeducted   += parseFloat(d.from_gift_card);     if (giftBefore === null)   giftBefore   = parseFloat(d.gift_card_before); }
+          if (d.from_money > 0)         { moneyDeducted  += parseFloat(d.from_money);         if (moneyBefore === null)  moneyBefore  = parseFloat(d.money_before); }
+        });
+        setDeductionBadge('rewardcredit', rewardBefore ? (rewardDeducted / rewardBefore) * 100 : 0);
+        setDeductionBadge('giftcard',     giftBefore   ? (giftDeducted   / giftBefore)   * 100 : 0);
+        setDeductionBadge('money',        moneyBefore  ? (moneyDeducted  / moneyBefore)  * 100 : 0);
+        await sb.rpc('mark_deductions_seen', { p_user_id: uid });
+      } else {
+        setDeductionBadge('rewardcredit', 0);
+        setDeductionBadge('giftcard', 0);
+        setDeductionBadge('money', 0);
+      }
+    } catch (e) {
+      // Fail quiet
+    }
+  }
+
+  async function redeemGiftCard() {
+    const input = document.getElementById('giftCardCodeInput');
+    const btn = document.getElementById('giftCardRedeemBtn');
+    const msg = document.getElementById('giftCardResultMsg');
+    const code = (input?.value || '').trim();
+
+    if (!code) {
+      msg.style.display = 'block'; msg.style.color = 'var(--red)';
+      msg.textContent = 'Enter a code first.';
+      return;
+    }
+    const uid = window._currentUserId;
+    if (!uid || uid === 'guest') {
+      msg.style.display = 'block'; msg.style.color = 'var(--red)';
+      msg.textContent = 'Please sign in to redeem a gift card.';
+      return;
+    }
+
+    btn.disabled = true; btn.textContent = '...'; msg.style.display = 'none';
+
+    try {
+      const { data, error } = await sb.rpc('redeem_gift_card', { p_code: code });
+      if (error) throw error;
+      if (data && data.success) {
+        const kindLabel = data.type === 'tradable' ? 'Gift Card balance' : 'Reward Credit balance';
+        msg.style.display = 'block'; msg.style.color = 'var(--green)';
+        msg.textContent = `✓ Success — $${parseFloat(data.value).toFixed(2)} added to your ${kindLabel}.`;
+        input.value = '';
+        loadReserveBalances(uid);
+      } else {
+        msg.style.display = 'block'; msg.style.color = 'var(--red)';
+        msg.textContent = data?.message || 'Could not redeem this code.';
+      }
+    } catch (e) {
+      msg.style.display = 'block'; msg.style.color = 'var(--red)';
+      msg.textContent = 'Something went wrong. Please try again.';
+    } finally {
+      btn.disabled = false; btn.textContent = 'REDEEM';
+    }
+  }
+
+  async function submitWithdrawal() {
+    const walletInput = document.getElementById('withdrawWalletInput');
+    const amountInput = document.getElementById('withdrawAmountInput');
+    const btn = document.getElementById('withdrawSubmitBtn');
+    const msg = document.getElementById('withdrawResultMsg');
+
+    const wallet = (walletInput?.value || '').trim();
+    const amount = parseFloat(amountInput?.value);
+    msg.style.display = 'none';
+
+    if (!wallet) { msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='Enter a wallet address.'; return; }
+    if (!amount || isNaN(amount) || amount < 1) { msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='Minimum withdrawal is $1.00.'; return; }
+
+    const uid = window._currentUserId;
+    if (!uid || uid === 'guest') { msg.style.display='block'; msg.style.color='var(--red)'; msg.textContent='Please sign in to withdraw.'; return; }
+
+    btn.disabled = true; btn.textContent = '...';
+
+    try {
+      const { data, error } = await sb.rpc('request_withdrawal', { p_amount: amount, p_wallet_address: wallet, p_source: 'money' });
+      if (error) throw error;
+      if (data && data.success) {
+        msg.style.display = 'block'; msg.style.color = 'var(--green)';
+        msg.textContent = '✓ ' + data.message;
+        walletInput.value = ''; amountInput.value = '';
+        loadReserveBalances(uid);
+      } else {
+        msg.style.display = 'block'; msg.style.color = 'var(--red)';
+        msg.textContent = data?.message || 'Could not submit withdrawal.';
+      }
+    } catch (e) {
+      msg.style.display = 'block'; msg.style.color = 'var(--red)';
+      msg.textContent = 'Something went wrong. Please try again.';
+    } finally {
+      btn.disabled = false; btn.textContent = 'WITHDRAW';
+    }
+  }
+
+  function openReserveInfo() {
+    document.getElementById('reserveInfoOverlay').classList.add('active');
+  }
+  function closeReserveInfo() {
+    document.getElementById('reserveInfoOverlay').classList.remove('active');
+  }
+  document.getElementById('reserveInfoOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeReserveInfo();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learn — Quill</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFD700;
+    --gold-dim: #D4AF37;
+    --gold-faint: rgba(255,215,0,0.12);
+    --gold-glow: rgba(255,215,0,0.85);
+    --black: #080808;
+    --black2: #0c0c0c;
+    --black3: #111111;
+    --card: #0f0f0f;
+    --border: rgba(255,215,0,0.3);
+    --text: #f5ecd0;
+    --text-dim: #8a7a5a;
+    --green: #00FF7F;
+    --green-glow: rgba(0,255,127,0.7);
+    --red: #FF3B3B;
+    --red-glow: rgba(255,59,59,0.7);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--black);
+    color:var(--text);
+    font-family:'Syne', sans-serif;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events:none; z-index:1000;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 5%; height:70px;
+    background:rgba(8,8,8,0.92);
+    backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-logo {
+    font-family:'Bebas Neue',sans-serif; font-size:1.9rem;
+    color:var(--gold); letter-spacing:5px;
+    text-shadow:0 0 20px var(--gold-glow), 0 0 50px rgba(255,215,0,0.3);
+    text-decoration:none;
+  }
+  .nav-links { display:flex; gap:2rem; list-style:none; }
+  .nav-links a {
+    color:var(--text-dim); font-size:0.75rem; text-decoration:none;
+    font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:2px;
+    transition:color 0.3s;
+  }
+  .nav-links a:hover, .nav-links a.active { color:var(--gold); }
+  .nav-back {
+    background:transparent; border:1px solid var(--border);
+    color:var(--gold); padding:8px 20px; border-radius:50px;
+    font-family:'DM Mono',monospace; font-size:0.7rem; cursor:pointer;
+    text-transform:uppercase; letter-spacing:2px; text-decoration:none;
+    transition:all 0.3s;
+  }
+  .nav-back:hover { background:var(--gold); color:#000; }
+
+  /* ── HERO ── */
+  .learn-hero {
+    padding:140px 5% 80px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .learn-hero::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse 60% 50% at 50% 40%, rgba(255,215,0,0.08) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .hero-grid {
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,215,0,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,215,0,0.05) 1px, transparent 1px);
+    background-size:60px 60px;
+    mask-image:radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+  }
+  .learn-hero .badge {
+    display:inline-block;
+    background:var(--gold-faint); border:1px solid var(--border);
+    color:var(--gold); font-family:'DM Mono',monospace; font-size:0.7rem;
+    padding:6px 16px; border-radius:50px; letter-spacing:3px; text-transform:uppercase;
+    margin-bottom:1.5rem;
+  }
+  .learn-hero h1 {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(3rem,7vw,5rem); letter-spacing:4px; color:#fff;
+    margin-bottom:1rem; position:relative;
+  }
+  .learn-hero h1 .gold {
+    color:var(--gold);
+    text-shadow:0 0 20px var(--gold-glow), 0 0 60px rgba(255,215,0,0.4);
+  }
+  .learn-hero p {
+    font-size:1rem; color:var(--text-dim); max-width:560px; margin:0 auto;
+    line-height:1.75; position:relative;
+  }
+
+  /* ── CONTENT AREA ── */
+  .learn-content {
+    max-width:900px; margin:0 auto; padding:0 5% 100px;
+  }
+
+  /* ── SECTION LABELS ── */
+  .learn-section {
+    margin-bottom:80px;
+  }
+  .learn-section-tag {
+    display:inline-block;
+    background:var(--gold-faint); border:1px solid var(--border);
+    color:var(--gold); font-family:'DM Mono',monospace; font-size:0.65rem;
+    padding:5px 14px; border-radius:50px; letter-spacing:3px; text-transform:uppercase;
+    margin-bottom:1rem;
+  }
+  .learn-section h2 {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(1.8rem,4vw,2.8rem); letter-spacing:3px; color:#fff;
+    margin-bottom:0.8rem;
+  }
+  .learn-section h2 span { color:var(--gold); }
+  .learn-section > p {
+    color:var(--text-dim); font-size:0.95rem; line-height:1.75;
+    margin-bottom:2rem; max-width:640px;
+  }
+
+  /* ── HOW IT WORKS STEPS ── */
+  .steps-grid {
+    display:grid; gap:1.5rem;
+  }
+  .step-card {
+    display:flex; align-items:flex-start; gap:1.5rem;
+    background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:1.5rem 2rem;
+    transition:border-color 0.3s, box-shadow 0.3s;
+  }
+  .step-card:hover {
+    border-color:var(--gold);
+    box-shadow:0 0 30px rgba(255,215,0,0.15);
+  }
+  .step-num {
+    font-family:'Bebas Neue',sans-serif; font-size:2.5rem; letter-spacing:2px;
+    color:var(--gold); opacity:0.35; line-height:1; min-width:52px;
+    text-shadow:0 0 20px var(--gold-glow);
+  }
+  .step-icon { font-size:2rem; line-height:1; min-width:40px; }
+  .step-content h3 {
+    font-family:'DM Mono',monospace; font-size:0.8rem; letter-spacing:3px;
+    color:var(--gold); margin-bottom:0.5rem; text-transform:uppercase;
+  }
+  .step-content p { color:var(--text-dim); font-size:0.9rem; line-height:1.65; }
+
+  /* ── AI CONSENSUS ── */
+  .consensus-wrap {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:2rem; margin-top:1rem;
+  }
+  .consensus-votes {
+    display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;
+    margin-bottom:2rem;
+  }
+  .vote-chip {
+    display:flex; flex-direction:column; align-items:center; gap:0.4rem;
+    background:rgba(255,215,0,0.06); border:1px solid var(--border);
+    border-radius:12px; padding:1rem 1.5rem; min-width:100px;
+  }
+  .vote-chip.buy  { border-color:rgba(0,255,127,0.4); background:rgba(0,255,127,0.06); }
+  .vote-chip.sell { border-color:rgba(255,59,59,0.4);  background:rgba(255,59,59,0.06); }
+  .vote-chip.hold { border-color:rgba(255,215,0,0.4);  background:rgba(255,215,0,0.06); }
+  .vote-label {
+    font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:2px;
+    text-transform:uppercase; color:var(--text-dim);
+  }
+  .vote-verdict {
+    font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:3px;
+  }
+  .vote-chip.buy  .vote-verdict { color:var(--green); text-shadow:0 0 12px var(--green-glow); }
+  .vote-chip.sell .vote-verdict { color:var(--red);   text-shadow:0 0 12px var(--red-glow); }
+  .vote-chip.hold .vote-verdict { color:var(--gold);  text-shadow:0 0 12px var(--gold-glow); }
+  .consensus-arrow {
+    text-align:center; margin-bottom:1.5rem;
+    font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:2px;
+    color:var(--text-dim); text-transform:uppercase;
+  }
+  .consensus-arrow span { color:var(--gold); font-size:1.2rem; display:block; margin-top:4px; }
+  .consensus-result {
+    text-align:center;
+    font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:4px;
+    color:var(--green); text-shadow:0 0 20px var(--green-glow);
+  }
+  .consensus-note {
+    text-align:center; font-family:'DM Mono',monospace; font-size:0.65rem;
+    letter-spacing:2px; color:var(--text-dim); margin-top:0.5rem;
+    text-transform:uppercase;
+  }
+
+  /* ── FEE MODEL ── */
+  .fee-explainer {
+    display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;
+  }
+  .fee-ex-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:1.5rem;
+  }
+  .fee-ex-card.win  { border-color:rgba(0,255,127,0.35); }
+  .fee-ex-card.loss { border-color:rgba(255,59,59,0.35); }
+  .fee-ex-tag {
+    font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:0.8rem;
+  }
+  .fee-ex-card.win  .fee-ex-tag { color:var(--green); }
+  .fee-ex-card.loss .fee-ex-tag { color:var(--red); }
+  .fee-ex-amount {
+    font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:2px;
+    margin-bottom:0.4rem;
+  }
+  .fee-ex-card.win  .fee-ex-amount { color:var(--green); text-shadow:0 0 15px var(--green-glow); }
+  .fee-ex-card.loss .fee-ex-amount { color:var(--red);   text-shadow:0 0 15px var(--red-glow); }
+  .fee-ex-desc { font-size:0.82rem; color:var(--text-dim); line-height:1.6; }
+
+  /* ── GLOSSARY ── */
+  .glossary-list { display:grid; gap:1rem; }
+  .glossary-item {
+    background:var(--card); border:1px solid rgba(255,215,0,0.15);
+    border-radius:10px; padding:1rem 1.25rem;
+    display:grid; grid-template-columns:auto 1fr; gap:0 1rem; align-items:start;
+  }
+  .glossary-term {
+    font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:2px;
+    color:var(--gold); text-transform:uppercase; padding-top:2px;
+    white-space:nowrap;
+  }
+  .glossary-def { font-size:0.85rem; color:var(--text-dim); line-height:1.6; }
+
+  /* ── CAPITAL PRESERVATION ── */
+  .shield-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:0.5rem;
+  }
+  @media(max-width:640px){ .shield-grid { grid-template-columns:1fr; } }
+  .shield-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:1.5rem;
+    transition:border-color 0.3s, box-shadow 0.3s;
+  }
+  .shield-card:hover {
+    border-color:var(--gold);
+    box-shadow:0 0 24px rgba(255,215,0,0.12);
+  }
+  .shield-icon { font-size:1.8rem; margin-bottom:0.8rem; }
+  .shield-card h3 {
+    font-family:'DM Mono',monospace; font-size:0.75rem; letter-spacing:3px;
+    color:var(--gold); text-transform:uppercase; margin-bottom:0.5rem;
+  }
+  .shield-card p { font-size:0.85rem; color:var(--text-dim); line-height:1.65; }
+  .shield-banner {
+    margin-top:1.5rem;
+    background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.25);
+    border-radius:12px; padding:1.2rem 1.5rem;
+    font-family:'DM Mono',monospace; font-size:0.78rem; letter-spacing:1.5px;
+    color:var(--gold); line-height:1.7; text-align:center;
+  }
+
+  /* ── R:R MATH ── */
+  .rr-compare {
+    display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:0.5rem;
+  }
+  @media(max-width:640px){ .rr-compare { grid-template-columns:1fr; } }
+  .rr-card {
+    background:var(--card); border-radius:16px; padding:1.5rem;
+    border:1px solid var(--border);
+  }
+  .rr-card.bad  { border-color:rgba(255,59,59,0.35); }
+  .rr-card.good { border-color:rgba(0,255,127,0.35); }
+  .rr-card-label {
+    font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:1rem;
+  }
+  .rr-card.bad  .rr-card-label { color:var(--red); }
+  .rr-card.good .rr-card-label { color:var(--green); }
+  .rr-card h3 {
+    font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:2px;
+    color:#fff; margin-bottom:1rem;
+  }
+  .rr-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0.55rem 0; border-bottom:1px solid rgba(255,215,0,0.07);
+    font-size:0.82rem;
+  }
+  .rr-row:last-child { border-bottom:none; }
+  .rr-row-label { color:var(--text-dim); font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:1px; }
+  .rr-row-val { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1px; }
+  .rr-row-val.green { color:var(--green); text-shadow:0 0 10px var(--green-glow); }
+  .rr-row-val.red   { color:var(--red);   text-shadow:0 0 10px var(--red-glow); }
+  .rr-row-val.gold  { color:var(--gold); }
+  .rr-row-val.white { color:#fff; }
+  .rr-verdict {
+    margin-top:1rem; border-radius:8px; padding:0.7rem 1rem;
+    font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:1.5px;
+    text-align:center; text-transform:uppercase;
+  }
+  .rr-card.bad  .rr-verdict { background:rgba(255,59,59,0.1); color:var(--red); }
+  .rr-card.good .rr-verdict { background:rgba(0,255,127,0.08); color:var(--green); }
+  .rr-insight {
+    margin-top:1.5rem;
+    background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.2);
+    border-radius:12px; padding:1.2rem 1.5rem;
+    font-size:0.85rem; color:var(--text-dim); line-height:1.7; text-align:center;
+  }
+  .rr-insight strong { color:var(--gold); }
+
+  /* ── CTA ── */
+  .learn-cta {
+    text-align:center; padding:60px 0 0;
+    border-top:1px solid rgba(255,215,0,0.12);
+    margin-top:40px;
+  }
+  .learn-cta h2 {
+    font-family:'Bebas Neue',sans-serif; font-size:2.4rem; letter-spacing:4px;
+    color:#fff; margin-bottom:0.8rem;
+  }
+  .learn-cta h2 span { color:var(--gold); text-shadow:0 0 20px var(--gold-glow); }
+  .learn-cta p { color:var(--text-dim); font-size:0.9rem; margin-bottom:1.5rem; }
+  .cta-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+  .btn-primary {
+    background:var(--gold); color:#080808; border:none;
+    padding:14px 32px; border-radius:50px;
+    font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px;
+    cursor:pointer; text-decoration:none; display:inline-block;
+    box-shadow:0 0 30px rgba(255,215,0,0.5), 0 0 60px rgba(255,215,0,0.2);
+    transition:all 0.3s;
+  }
+  .btn-primary:hover { transform:translateY(-3px); box-shadow:0 8px 40px rgba(255,215,0,0.7); }
+  .btn-outline {
+    background:transparent; color:var(--gold); border:1px solid var(--gold);
+    padding:14px 32px; border-radius:50px;
+    font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px;
+    cursor:pointer; text-decoration:none; display:inline-block;
+    transition:all 0.3s;
+  }
+  .btn-outline:hover { background:var(--gold); color:#000; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align:center; padding:40px 5%;
+    border-top:1px solid rgba(255,215,0,0.1);
+    font-family:'DM Mono',monospace; font-size:0.7rem;
+    color:var(--text-dim); letter-spacing:2px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:640px) {
+    .nav-links { display:none; }
+    .fee-explainer { grid-template-columns:1fr; }
+    .consensus-votes { flex-direction:column; align-items:center; }
+    .vote-chip { width:100%; max-width:200px; }
+  }
+
+  /* ── REVEAL ANIMATION ── */
+  .reveal { opacity:0; transform:translateY(24px); transition:opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity:1; transform:none; }
+
+  /* ===== PAGE TRANSITION ===== */
+  @keyframes pageEnter { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+  body { animation: pageEnter 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+
+  /* ===== SCROLL FADE-IN ===== */
+  .fie { opacity:0; transform:translateY(40px); transition:opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); }
+  .fie.in { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">QUILL</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="bot.html">Bot</a></li>
+    <li><a href="learn.html" class="active">Learn</a></li>
+    <li><a href="vault.html">Vault</a></li>
+    <li><a href="growth.html">Growth</a></li>
+    <li><a href="index.html#contact">Links</a></li>
+  </ul>
+  <a href="bot.html" class="nav-back">← Bot</a>
+</nav>
+
+<!-- HERO -->
+<div class="learn-hero">
+  <div class="hero-grid"></div>
+  <div class="badge">◈ Education</div>
+  <h1>How <span class="gold">Quill Bot</span> Works</h1>
+  <p>A proprietary AI consensus engine watching the markets around the clock so you don't have to.</p>
+</div>
+
+<div class="learn-content">
+
+  <!-- HOW IT WORKS -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ The Process</div>
+    <h2>Four Steps to a <span>Trade</span></h2>
+    <p>Every trade Quill executes passes through the same rigorous four-step pipeline — no shortcuts, no guesswork.</p>
+    <div class="steps-grid">
+      <div class="step-card fie">
+        <div class="step-num">01</div>
+        <div class="step-icon">📡</div>
+        <div class="step-content">
+          <h3>Market Scan</h3>
+          <p>The bot continuously scans major crypto futures pairs using live exchange data. Price action, volume, and order book depth are monitored in real time.</p>
+        </div>
+      </div>
+      <div class="step-card fie">
+        <div class="step-num">02</div>
+        <div class="step-icon">📊</div>
+        <div class="step-content">
+          <h3>Signal Analysis</h3>
+          <p>A suite of proprietary technical signals and sentiment data analyse the market simultaneously. Each signal contributes to the overall picture before any decision is made.</p>
+        </div>
+      </div>
+      <div class="step-card fie">
+        <div class="step-num">03</div>
+        <div class="step-icon">🤖</div>
+        <div class="step-content">
+          <h3>AI Consensus</h3>
+          <p>Multiple AI models each vote BUY, SELL, or HOLD based on the signal data. A clear majority must agree before any trade is confirmed — disagreement means no trade.</p>
+        </div>
+      </div>
+      <div class="step-card fie">
+        <div class="step-num">04</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-content">
+          <h3>Execute</h3>
+          <p>Once consensus is reached, the bot executes the trade on your connected futures account. Dynamic stop-loss and take-profit levels are set automatically based on current market volatility.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI CONSENSUS -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ AI Voting</div>
+    <h2>The <span>Consensus</span> System</h2>
+    <p>No single AI decides the trade. Multiple models vote independently on the same market data. Only a clear majority vote triggers execution — this eliminates impulsive, low-confidence entries.</p>
+    <div class="consensus-wrap">
+      <div class="consensus-votes">
+        <div class="vote-chip buy">
+          <div class="vote-label">AI Model 1</div>
+          <div class="vote-verdict">BUY</div>
+        </div>
+        <div class="vote-chip buy">
+          <div class="vote-label">AI Model 2</div>
+          <div class="vote-verdict">BUY</div>
+        </div>
+        <div class="vote-chip hold">
+          <div class="vote-label">AI Model 3</div>
+          <div class="vote-verdict">HOLD</div>
+        </div>
+      </div>
+      <div class="consensus-arrow">
+        Majority reached — signal confirmed
+        <span>↓</span>
+      </div>
+      <div class="consensus-result">◈ LONG EXECUTED</div>
+      <div class="consensus-note">Majority vote · BUY consensus</div>
+    </div>
+  </div>
+
+  <!-- FEE MODEL -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ Pricing</div>
+    <h2>How <span>Fees</span> Work</h2>
+    <p>Quill only charges a performance fee — and only when a trade is profitable. If the bot loses, you pay zero. The fee is a flat <strong style="color:var(--gold);">10%</strong>, the same for every user — no tiers, no discounts. What varies is which balance the fee comes out of.</p>
+
+    <!-- Three-balance table -->
+    <div style="display:grid;gap:1rem;margin-bottom:2rem;">
+
+      <div class="step-card fie" style="align-items:center;gap:1rem;padding:1.2rem 1.5rem;border-color:rgba(255,215,0,0.35);">
+        <div style="font-size:1.6rem;min-width:36px;text-align:center;">①</div>
+        <div style="flex:1;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:3px;">Reward Credit Balance — drawn first</div>
+          <div style="font-size:0.85rem;color:var(--text-dim);line-height:1.6;">Free credit from referrals, milestones, or admin giveaways. <strong style="color:var(--text);">Spend-only — never withdrawable.</strong> Expires 30 days after being added, so Quill always uses this before touching your own money.</div>
+        </div>
+      </div>
+
+      <div class="step-card fie" style="align-items:center;gap:1rem;padding:1.2rem 1.5rem;border-color:rgba(130,180,230,0.4);">
+        <div style="font-size:1.6rem;min-width:36px;text-align:center;">②</div>
+        <div style="flex:1;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:3px;color:#9ec8e8;text-transform:uppercase;margin-bottom:3px;">Gift Card Balance — drawn second</div>
+          <div style="font-size:0.85rem;color:var(--text-dim);line-height:1.6;">Added when you redeem a Quill Gift Card. <strong style="color:var(--text);">Spend-only — never withdrawable.</strong> Used only once your Reward Credit is exhausted.</div>
+        </div>
+      </div>
+
+      <div class="step-card fie" style="align-items:center;gap:1rem;padding:1.2rem 1.5rem;">
+        <div style="font-size:1.6rem;min-width:36px;text-align:center;">③</div>
+        <div style="flex:1;">
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:3px;color:#c8845a;text-transform:uppercase;margin-bottom:3px;">Money Balance — drawn last</div>
+          <div style="font-size:0.85rem;color:var(--text-dim);line-height:1.6;">Your real USDC deposits. <strong style="color:var(--text);">Withdrawable at any time.</strong> Only touched once both balances above are empty — your own funds are always protected first.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Win/Loss example -->
+    <div class="fee-explainer">
+      <div class="fee-ex-card win">
+        <div class="fee-ex-tag">✓ Winning Trade</div>
+        <div class="fee-ex-amount">+$100 profit</div>
+        <div class="fee-ex-desc">A flat 10% performance fee ($10) is deducted — first from Reward Credit, then Gift Card, then Money, in that order. You keep $90 net, and nothing is charged if the next trade loses.</div>
+      </div>
+      <div class="fee-ex-card loss">
+        <div class="fee-ex-tag">✗ Losing Trade</div>
+        <div class="fee-ex-amount">−$40 loss</div>
+        <div class="fee-ex-desc">No fee deducted. Zero. Quill takes nothing on a losing trade, ever. You absorb the trade loss only.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:12px;padding:1.2rem 1.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text-dim);line-height:1.8;text-align:center;">
+      One fee rate for everyone — <strong style="color:var(--gold);">10% flat</strong>, no tiers to climb.<br>
+      Free and bonus funds are always used <strong style="color:var(--gold);">before</strong> your own deposits.<br>
+      Only Money Balance and Referral Earnings can ever be withdrawn — Gift Card and Reward Credit are spend-only.
+    </div>
+
+  </div>
+
+  <!-- CAPITAL PRESERVATION -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ Capital Preservation</div>
+    <h2>A Bot That Knows When <span>Not</span> To Trade</h2>
+    <p>Most bots are built to trade constantly. Quill is built to trade <em>correctly</em> — which sometimes means doing nothing at all. Two core safeguards exist for one reason: to protect your capital before chasing profits.</p>
+    <div class="shield-grid">
+      <div class="shield-card">
+        <div class="shield-icon">🛑</div>
+        <h3>Consecutive Loss Circuit Breaker</h3>
+        <p>If the bot takes a defined number of losses in a row, it stops trading entirely and waits. No revenge trades. No chasing losses. The market gets space to stabilise before Quill re-engages — on its terms, not the market's.</p>
+      </div>
+      <div class="shield-card">
+        <div class="shield-icon">🧭</div>
+        <h3>Regime Detection</h3>
+        <p>Quill reads the current market environment before every session — trending, ranging, volatile, or thin. If conditions don't match a tradeable regime, the bot sits out completely. You don't earn by trading badly; you earn by only trading well.</p>
+      </div>
+      <div class="shield-card">
+        <div class="shield-icon">⏱️</div>
+        <h3>Time-Based Filtering</h3>
+        <p>Not all hours are equal. Quill avoids low-liquidity windows and historically unreliable time slots. Entering a trade at the wrong hour is a risk no signal can fix — so Quill doesn't take that risk.</p>
+      </div>
+      <div class="shield-card">
+        <div class="shield-icon">🔒</div>
+        <h3>Per-Coin Cooldowns</h3>
+        <p>After closing a position on any asset, Quill enforces a cooldown before re-entering that same coin. This prevents compounding losses on a single pair during erratic moves — a discipline most human traders can't maintain.</p>
+      </div>
+    </div>
+    <div class="shield-banner">
+      The goal is not to win every trade — it is to still be in the game when the high-quality setups arrive.
+    </div>
+  </div>
+
+  <!-- R:R MATH -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ The Math</div>
+    <h2>Why <span>Win Rate</span> Isn't Everything</h2>
+    <p>Most people chase a high win rate. Professional traders chase a high Risk-to-Reward ratio. The difference between the two can be the difference between blowing an account and growing one — even when you're losing more trades than you win.</p>
+    <div class="rr-compare">
+      <div class="rr-card bad">
+        <div class="rr-card-label">✗ The Dangerous Bot</div>
+        <h3>80% Win Rate · 1:0.5 R:R</h3>
+        <div class="rr-row">
+          <span class="rr-row-label">Win Rate</span>
+          <span class="rr-row-val green">80%</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Avg Win</span>
+          <span class="rr-row-val white">+$50</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Avg Loss</span>
+          <span class="rr-row-val white">−$100</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Over 10 trades</span>
+          <span class="rr-row-val white">8W · 2L</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Gross P&L</span>
+          <span class="rr-row-val red">−$200 + $400 = +$200</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">One bad streak (5L)</span>
+          <span class="rr-row-val red">−$500 · Account wiped</span>
+        </div>
+        <div class="rr-verdict">High win rate. Low resilience. One bad week ends it.</div>
+      </div>
+      <div class="rr-card good">
+        <div class="rr-card-label">✓ The Quill Approach</div>
+        <h3>45% Win Rate · 1:3 R:R</h3>
+        <div class="rr-row">
+          <span class="rr-row-label">Win Rate</span>
+          <span class="rr-row-val gold">45%</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Avg Win</span>
+          <span class="rr-row-val white">+$300</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Avg Loss</span>
+          <span class="rr-row-val white">−$100</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Over 10 trades</span>
+          <span class="rr-row-val white">4W · 6L</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Gross P&L</span>
+          <span class="rr-row-val green">+$1,200 − $600 = +$600</span>
+        </div>
+        <div class="rr-row">
+          <span class="rr-row-label">Same bad streak (5L)</span>
+          <span class="rr-row-val green">−$500 · One win recovers it</span>
+        </div>
+        <div class="rr-verdict">Lower win rate. Higher profit. Built to survive drawdowns.</div>
+      </div>
+    </div>
+    <div class="rr-insight">
+      Quill enforces a minimum <strong>Risk-to-Reward gate</strong> on every trade entry. If the potential reward doesn't justify the risk, the trade is skipped — no exceptions. This single rule is what separates disciplined bots from gambling machines.
+    </div>
+  </div>
+
+  <!-- GLOSSARY -->
+  <div class="learn-section reveal fie">
+    <div class="learn-section-tag">◈ Glossary</div>
+    <h2>Terms You Should <span>Know</span></h2>
+    <div class="glossary-list">
+      <div class="glossary-item">
+        <div class="glossary-term">Futures</div>
+        <div class="glossary-def">A contract to buy or sell an asset at a future price. Unlike spot trading, futures allow leverage — meaning you can control a larger position with less capital. Quill trades perpetual futures.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="glossary-term">Leverage</div>
+        <div class="glossary-def">A multiplier on your position size. Higher leverage means greater exposure — both gains and losses are amplified. Quill adjusts leverage automatically based on your chosen personality mode.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="glossary-term">Stop-Loss</div>
+        <div class="glossary-def">A price level that automatically closes a losing trade to cap downside. Quill sets stop-losses dynamically, calibrated to current market conditions.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="glossary-term">Take-Profit</div>
+        <div class="glossary-def">A price level that automatically closes a winning trade to lock in gains. Quill uses a staged take-profit approach — securing part of the position early while letting the rest run.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="glossary-term">Fee Reserve</div>
+        <div class="glossary-def">A USDC buffer you deposit upfront — separate from your trading capital on the exchange. Quill deducts a flat 10% performance fee from it automatically after winning trades, drawing from Reward Credit first, then Gift Card, then Money Balance last. Only Money Balance and Referral Earnings can be withdrawn. Topped up by you when low.</div>
+      </div>
+      <div class="glossary-item">
+        <div class="glossary-term">R:R Ratio</div>
+        <div class="glossary-def">Risk-to-Reward ratio. Quill requires a minimum R:R threshold before entering any trade — ensuring only high-quality setups with favourable reward potential are taken.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="learn-cta reveal fie">
+    <h2>Ready to <span>Trade?</span></h2>
+    <p>Explore the bot personalities and see which mode fits your risk appetite.</p>
+    <div class="cta-btns">
+      <a href="bot.html" class="btn-primary">Explore Quill Bot</a>
+      <a href="index.html#waitlist" class="btn-outline">Get Early Access</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>QUILL · Learn · AI-Powered Crypto Futures Trading</footer>
+
+<script>
+// Reveal on scroll (.reveal)
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold:0.1 });
+reveals.forEach(el => observer.observe(el));
+
+// Strong scroll fade-in (.fie) — staggers children for a cascade effect
+const fies = document.querySelectorAll('.fie');
+const fieObs = new IntersectionObserver((entries) => {
+  entries.forEach((e,i) => {
+    if(e.isIntersecting) setTimeout(()=>e.target.classList.add('in'), i*100);
+  });
+}, { threshold:0.05, rootMargin:'0px 0px -40px 0px' });
+fies.forEach(el => fieObs.observe(el));
+</script>
+</body>
+</html>
