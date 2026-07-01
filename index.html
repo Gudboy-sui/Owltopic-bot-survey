@@ -1962,6 +1962,14 @@
 
   // ── Main loop ──
   function tick(now){
+    // Guard: if either hero image failed to load, stop the animation
+    // instead of crash-looping drawImage() 60x/sec and freezing the tab.
+    if((img1.complete && img1.naturalWidth === 0) || (img2.complete && img2.naturalWidth === 0)){
+      ctx.clearRect(0,0,W,H);
+      if(animId) cancelAnimationFrame(animId);
+      animId = null;
+      return;
+    }
     animId = requestAnimationFrame(tick);
     const elapsed = now - phaseStart;
 
@@ -2054,6 +2062,9 @@
   function init(){
     readyCount++;
     if(readyCount < 2) return; // wait for both images
+    // If either image failed (naturalWidth 0), skip the animation entirely —
+    // the plain <img> tags will still show (or show broken-image icon) without freezing the page.
+    if(img1.naturalWidth === 0 || img2.naturalWidth === 0) return;
     sizeCanvas();
     // Start first hold immediately
     startPhase('hold');
