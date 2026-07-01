@@ -2096,8 +2096,47 @@
   const SUPABASE_URL = 'https://pqiavaupmkgrkhnebfxs.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxaWF2YXVwbWtncmtobmViZnhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjMxNjMsImV4cCI6MjA4ODYzOTE2M30.qyZxl835adIPVTr78b5dQDltTLAYjW0XO0m-wQR2zWo';
 
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ---- Safe fallback so a blocked/failed Supabase CDN load never crashes the rest of the page ----
+  // Mirrors the real Supabase response shapes for every method this page calls, so downstream
+  // code (which checks `error`, or destructures `{ session }`) behaves exactly as if the user
+  // is simply signed out / the request failed — instead of throwing and killing all later JS.
+  function createSupabaseStub(reason) {
+    const err = { message: reason };
+    const chain = new Proxy(function () {}, {
+      get(_t, prop) {
+        if (prop === 'then') return (resolve) => resolve({ data: null, error: err });
+        if (prop === 'catch' || prop === 'finally') return () => chain;
+        return chain;
+      },
+      apply() { return chain; }
+    });
+    return {
+      auth: {
+        getSession: async () => ({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
+        signInWithPassword: async () => ({ data: null, error: err }),
+        signUp: async () => ({ data: null, error: err }),
+        signInAnonymously: async () => ({ data: null, error: err }),
+        signOut: async () => ({ error: null }),
+        updateUser: async () => ({ data: null, error: err }),
+        resetPasswordForEmail: async () => ({ data: null, error: err }),
+        setSession: async () => ({ data: null, error: err })
+      },
+      from: () => chain,
+      rpc: () => chain,
+      storage: { from: () => chain }
+    };
+  }
+
+  let sb;
+  try {
+    if (typeof supabase === 'undefined') throw new Error('Supabase library failed to load (CDN blocked or offline)');
+    const { createClient } = supabase;
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.error('[Quill] Supabase unavailable — auth/wallet features disabled, core site still works:', e.message);
+    sb = createSupabaseStub('Service temporarily unavailable. Please refresh or check your connection.');
+  }
 
   const NFT_COLLECTION_ID = 'CLbUSk7m4wjwzom7xD9HRwtfkAoUB1BfwAXRnaY8ANmg';
   const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=f4f5f3c0-199b-436d-99c1-ce3dbb8be5e8';
